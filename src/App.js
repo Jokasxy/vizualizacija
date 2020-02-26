@@ -1,8 +1,7 @@
 import React, { Component } from 'react';
-import { Input, Button } from 'antd';
+import { Input, Button, Form, Spin, Row, Col } from 'antd';
 import { api } from './Api';
-import { LineChart, XAxis, YAxis, CartesianGrid, Line } from 'recharts';
-import moment from 'moment';
+import { LineChart, XAxis, YAxis, CartesianGrid, Line, Legend } from 'recharts';
 import './App.css';
 import 'antd/dist/antd.css';
 
@@ -16,7 +15,8 @@ class App extends Component
 
     this.state =
     {
-      data: []
+      data: [],
+      loading: true
     }
   }
 
@@ -25,35 +25,82 @@ class App extends Component
     api.get(`/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=AMD&interval=yearly&apikey=${apikey}`)
     .then(response =>
     {
-      console.log(response.data['Time Series (Daily)']);
       let keys = Object.keys(response.data['Time Series (Daily)']);
-      console.log(moment(keys[0])._i);
-      console.log(moment(keys[0])._i['4. close']);
-      for(let i = 0; i < response.data['Time Series (Daily)'].length; i++)
+      let values = Object.values(response.data['Time Series (Daily)']);
+      for(let i = values.length - 1; i >= 0; i--)
       {
-        this.state.data.push({date: moment(keys[i]), close: moment(keys[i])['4. close']});
+        this.setState(prevState => ({data: [...prevState.data, {date: keys[i], close: values[i]['4. close']}]}));
       }
-    });
+    })
+    .finally(() => this.setState({loading: false}));
+  }
 
+  handleSubmit = event =>
+  {
+    event.preventDefault();
+    this.props.form.validateFields((error, values) =>
+    {
+      if(!error)
+      {
+        this.setState({loading: true});
+        api.get(`/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${values.symbol}&interval=yearly&apikey=${apikey}`)
+        .then(response =>
+        {
+          let keys = Object.keys(response.data['Time Series (Daily)']);
+          let values = Object.values(response.data['Time Series (Daily)']);
+          for(let i = values.length - 1; i >= 0; i--)
+          {
+            this.setState(prevState => ({data: [...prevState.data, {date: keys[i], close: values[i]['4. close']}]}));
+          }
+        })
+        .finally(() => this.setState({loading: false}));
+      }
+    })
   }
 
   render()
   {
+    const { getFieldDecorator } = this.props.form;
     return (
       <div className='App'>
-        <h1>Stock market analysis</h1>
-        <Input size='large' placeholder='Stock symbol'
-        addonAfter={<Button type='primary' icon='search' style={{height: '38px', borderRadius: '0'}}/>}
-        />
-        <LineChart width={800} height={400} data={this.state.data}>
-          <XAxis dataKey={Object.keys(this.state.data)}/>
-          <YAxis/>
-          <CartesianGrid stroke='#eee' strokeDasharray='5 5'/>
-          <Line type='monotone' dataKey='4. close' stroke='#8884d8' />
-        </LineChart>
+        <h1 style={{ marginBottom: '40px' }}>Stock market analysis</h1>
+        <Form onSubmit={this.handleSubmit} layout="vertical">
+          <Row style={{ marginBottom: '40px' }} gutter={[20, 20]}>
+            <Col xs={16} sm={18} lg={20} xxl={21}>
+              <Form.Item label='Input stock symbol'>
+              {getFieldDecorator('symbol')(<Input size='large' placeholder='Stock symbol'/>)}
+              </Form.Item>
+            </Col>
+            <Col xs={8} sm={6} lg={4} xxl={3}>
+              <Form.Item label='&nbsp;'>
+                <Button
+                  style={{ float: 'right' }}
+                  size='large'
+                  type='primary' 
+                  htmlType='submit' 
+                  icon='search'
+                  loading={this.state.loading}>
+                  Search
+                </Button>
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
+        {
+          this.state.loading ? <Spin/> :
+          <div style={{ overflow: 'auto' }}>
+            <LineChart style={{ margin: '0 auto' }} width={800} height={400} data={this.state.data}>
+              <XAxis dataKey={'date'}/>
+              <YAxis/>
+              <CartesianGrid stroke='#eee' strokeDasharray='5 5'/>
+              <Legend verticalAlign='bottom'/>
+              <Line type='monotone' dataKey='close' stroke='red' name='AMD' dot={false}/>
+            </LineChart>
+          </div>
+        }
       </div>
     );
   }
 }
 
-export default App;
+export default Form.create({ name: 'symbolInput' })(App);
