@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { Input, Button, Form, Spin, Row, Col, Empty } from 'antd';
 import { api } from './Api';
-import { LineChart, XAxis, YAxis, CartesianGrid, Line, Legend } from 'recharts';
+import { LineChart, XAxis, YAxis, CartesianGrid, Line, Legend, ResponsiveContainer } from 'recharts';
 import './App.css';
 import 'antd/dist/antd.css';
 
@@ -92,14 +92,16 @@ class App extends Component
         </Form>
         {
           this.state.loading ? <Spin/> : this.state.data.length === 0 ? <Empty/> :
-          <div style={{ overflow: 'auto' }}>
-            <LineChart style={{ margin: '0 auto' }} width={800} height={400} data={this.state.data}>
-              <XAxis dataKey={'date'}/>
-              <YAxis/>
-              <CartesianGrid stroke='#eee' strokeDasharray='5 5'/>
-              <Legend verticalAlign='bottom'/>
-              <Line type='monotone' dataKey='close' stroke='red' name={this.state.symbol.toUpperCase()} dot={false}/>
-            </LineChart>
+          <div style={{ width: '100%', height: '400px' }}>
+            <ResponsiveContainer>
+              <LineChart data={this.state.data}>
+                <XAxis dataKey='date'/>
+                <YAxis interval='preserveEnd'/>
+                <CartesianGrid stroke='#eee' strokeDasharray='5 5'/>
+                <Legend verticalAlign='bottom'/>
+                <Line type='monotone' dataKey='close' stroke='red' name={this.state.symbol.toUpperCase()} dot={false}/>
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         }
       </div>
