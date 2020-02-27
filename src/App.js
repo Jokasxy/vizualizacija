@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Input, Button, Form, Spin, Row, Col } from 'antd';
+import { Input, Button, Form, Spin, Row, Col, Empty } from 'antd';
 import { api } from './Api';
 import { LineChart, XAxis, YAxis, CartesianGrid, Line, Legend } from 'recharts';
 import './App.css';
@@ -16,11 +16,12 @@ class App extends Component
     this.state =
     {
       data: [],
-      loading: true
+      loading: false,
+      symbol: undefined
     }
   }
 
-  componentDidMount()
+  /*componentDidMount()
   {
     api.get(`/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=AMD&interval=yearly&apikey=${apikey}`)
     .then(response =>
@@ -33,7 +34,7 @@ class App extends Component
       }
     })
     .finally(() => this.setState({loading: false}));
-  }
+  }*/
 
   handleSubmit = event =>
   {
@@ -42,15 +43,18 @@ class App extends Component
     {
       if(!error)
       {
-        this.setState({loading: true});
+        this.setState({loading: true, data: [], symbol: values.symbol});
         api.get(`/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${values.symbol}&interval=yearly&apikey=${apikey}`)
         .then(response =>
         {
-          let keys = Object.keys(response.data['Time Series (Daily)']);
-          let values = Object.values(response.data['Time Series (Daily)']);
-          for(let i = values.length - 1; i >= 0; i--)
+          if(!response.data['Error Message'])
           {
-            this.setState(prevState => ({data: [...prevState.data, {date: keys[i], close: values[i]['4. close']}]}));
+            let keys = Object.keys(response.data['Time Series (Daily)']);
+            let values = Object.values(response.data['Time Series (Daily)']);
+            for(let i = values.length - 1; i >= 0; i--)
+            {
+              this.setState(prevState => ({data: [...prevState.data, {date: keys[i], close: values[i]['4. close']}]}));
+            }
           }
         })
         .finally(() => this.setState({loading: false}));
@@ -87,14 +91,14 @@ class App extends Component
           </Row>
         </Form>
         {
-          this.state.loading ? <Spin/> :
+          this.state.loading ? <Spin/> : this.state.data.length === 0 ? <Empty/> :
           <div style={{ overflow: 'auto' }}>
             <LineChart style={{ margin: '0 auto' }} width={800} height={400} data={this.state.data}>
               <XAxis dataKey={'date'}/>
               <YAxis/>
               <CartesianGrid stroke='#eee' strokeDasharray='5 5'/>
               <Legend verticalAlign='bottom'/>
-              <Line type='monotone' dataKey='close' stroke='red' name='AMD' dot={false}/>
+              <Line type='monotone' dataKey='close' stroke='red' name={this.state.symbol.toUpperCase()} dot={false}/>
             </LineChart>
           </div>
         }
