@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
-import { Input, Button, Form, Spin, Row, Col, Empty } from 'antd';
+import { Input, Button, Form, Spin, Row, Col, Empty, Radio } from 'antd';
 import { api } from './Api';
-import { LineChart, XAxis, YAxis, CartesianGrid, Line, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, XAxis, YAxis, CartesianGrid, Line, Legend, ResponsiveContainer, Tooltip } from 'recharts';
+import moment from 'moment';
 import './App.css';
 import 'antd/dist/antd.css';
 
@@ -19,47 +20,74 @@ class App extends Component
       loading: false,
       symbol: undefined
     }
-  }
 
-  /*componentDidMount()
-  {
-    api.get(`/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=AMD&interval=yearly&apikey=${apikey}`)
-    .then(response =>
-    {
-      let keys = Object.keys(response.data['Time Series (Daily)']);
-      let values = Object.values(response.data['Time Series (Daily)']);
-      for(let i = values.length - 1; i >= 0; i--)
-      {
-        this.setState(prevState => ({data: [...prevState.data, {date: keys[i], close: values[i]['4. close']}]}));
-      }
-    })
-    .finally(() => this.setState({loading: false}));
-  }*/
+    this.interval = localStorage.getItem('interval');
+  }
 
   handleSubmit = event =>
   {
     event.preventDefault();
-    this.props.form.validateFields((error, values) =>
+    this.props.form.validateFields((error, formValues) =>
     {
       if(!error)
       {
-        this.setState({loading: true, data: [], symbol: values.symbol});
-        api.get(`/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${values.symbol}&interval=yearly&apikey=${apikey}`)
+        this.setState({loading: true, data: [], symbol: formValues.symbol});
+        const adjustedInterval = this.adjustInterval(formValues.interval);
+        api.get(`/query?function=${adjustedInterval}&symbol=${formValues.symbol}&apikey=${apikey}`)
         .then(response =>
         {
-          if(!response.data['Error Message'])
+          const data = Object.values(response.data)[1];
+          if(data)
           {
-            let keys = Object.keys(response.data['Time Series (Daily)']);
-            let values = Object.values(response.data['Time Series (Daily)']);
+            const keys = Object.keys(data);
+            const values = Object.values(data);
+            const referentTime = moment(keys[0]);
             for(let i = values.length - 1; i >= 0; i--)
             {
-              this.setState(prevState => ({data: [...prevState.data, {date: keys[i], close: values[i]['4. close']}]}));
+              const date = moment(keys[i]);
+              if(adjustedInterval.includes('interval=5min'))
+              {
+                if(date.isSame(referentTime, 'day'))
+                {
+                  this.setState(prevState => ({data: [...prevState.data, {date: date.format('HH:mm:ss'), close: values[i]['4. close']}]}));
+                }
+              }
+              else if(adjustedInterval.includes('interval=60min'))
+              {
+                if(date.isSameOrAfter(referentTime.subtract(5, 'days'), 'day'));
+                this.setState(prevState => ({data: [...prevState.data, {date: date.format('MMM DD HH:mm:ss'), close: values[i]['4. close']}]}));
+              }
+              else
+              {
+                this.setState(prevState => ({data: [...prevState.data, {date: date.format('MMM DD, YYYY'), close: values[i]['4. close']}]}));
+              }
             }
           }
         })
-        .finally(() => this.setState({loading: false}));
+        .finally(() =>
+        {
+          this.setState({loading: false});
+          localStorage.setItem('interval', formValues.interval);
+        });
       }
     })
+  }
+
+  adjustInterval(interval)
+  {
+    switch(interval)
+    {
+      case 'intraday':
+        return 'TIME_SERIES_INTRADAY&interval=5min';
+      case 'week':
+        return 'TIME_SERIES_INTRADAY&interval=60min';
+      case 'month': case 'quarter':
+        return 'TIME_SERIES_DAILY';
+      case 'half-year': case 'year':
+        return 'TIME_SERIES_WEEKLY';
+      default:
+        return 'TIME_SERIES_INTRADAY&interval=5min';
+    }
   }
 
   render()
@@ -69,7 +97,7 @@ class App extends Component
       <div className='App'>
         <h1 style={{ marginBottom: '40px' }}>Stock market analysis</h1>
         <Form onSubmit={this.handleSubmit} layout="vertical">
-          <Row style={{ marginBottom: '40px' }} gutter={[20, 20]}>
+          <Row gutter={[20, 20]}>
             <Col xs={16} sm={18} lg={20} xxl={21}>
               <Form.Item label='Input stock symbol'>
               {getFieldDecorator('symbol')(<Input size='large' placeholder='Stock symbol'/>)}
@@ -89,6 +117,31 @@ class App extends Component
               </Form.Item>
             </Col>
           </Row>
+          <Row style={{ marginBottom: '40px' }}>
+            <Form.Item>
+              {getFieldDecorator('interval', {initialValue: this.interval ?? 'intraday'})
+              (<Radio.Group buttonStyle='solid'>
+                <Radio.Button value='intraday'>
+                  Intraday
+                </Radio.Button>
+                <Radio.Button value='week'>
+                  Week
+                </Radio.Button>
+                <Radio.Button value='month'>
+                  Month
+                </Radio.Button>
+                <Radio.Button value='quarter'>
+                  Quarter
+                </Radio.Button>
+                <Radio.Button value='half-year'>
+                  Half-Year
+                </Radio.Button>
+                <Radio.Button value='year'>
+                  Year
+                </Radio.Button>
+              </Radio.Group>)}
+            </Form.Item>
+          </Row>
         </Form>
         {
           this.state.loading ? <Spin/> : this.state.data.length === 0 ? <Empty/> :
@@ -100,6 +153,7 @@ class App extends Component
                 <CartesianGrid stroke='#eee' strokeDasharray='5 5'/>
                 <Legend verticalAlign='bottom'/>
                 <Line type='monotone' dataKey='close' stroke='red' name={this.state.symbol.toUpperCase()} dot={false}/>
+                <Tooltip/>
               </LineChart>
             </ResponsiveContainer>
           </div>
