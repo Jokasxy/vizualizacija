@@ -32,8 +32,7 @@ class App extends Component
       if(!error)
       {
         this.setState({loading: true, data: [], symbol: formValues.symbol});
-        const adjustedInterval = this.adjustInterval(formValues.interval);
-        api.get(`/query?function=${adjustedInterval}&symbol=${formValues.symbol}&apikey=${apikey}`)
+        api.get(`/query?function=${this.adjustInterval(formValues.interval)}&symbol=${formValues.symbol}&apikey=${apikey}`)
         .then(response =>
         {
           const data = Object.values(response.data)[1];
@@ -41,25 +40,50 @@ class App extends Component
           {
             const keys = Object.keys(data);
             const values = Object.values(data);
-            const referentTime = moment(keys[0]);
             for(let i = values.length - 1; i >= 0; i--)
             {
+              const referentTime = moment(keys[0]);
               const date = moment(keys[i]);
-              if(adjustedInterval.includes('interval=5min'))
+              switch(formValues.interval)
               {
-                if(date.isSame(referentTime, 'day'))
-                {
-                  this.setState(prevState => ({data: [...prevState.data, {date: date.format('HH:mm:ss'), close: values[i]['4. close']}]}));
-                }
-              }
-              else if(adjustedInterval.includes('interval=60min'))
-              {
-                if(date.isSameOrAfter(referentTime.subtract(5, 'days'), 'day'));
-                this.setState(prevState => ({data: [...prevState.data, {date: date.format('MMM DD HH:mm:ss'), close: values[i]['4. close']}]}));
-              }
-              else
-              {
-                this.setState(prevState => ({data: [...prevState.data, {date: date.format('MMM DD, YYYY'), close: values[i]['4. close']}]}));
+                case 'intraday':
+                  if(date.isSameOrAfter(referentTime, 'day'))
+                  {
+                    this.setState(prevState => ({data: [...prevState.data, {date: date.format('HH:mm:ss'), close: values[i]['4. close']}]}));
+                  }
+                  break;
+                case 'week':
+                  if(date.isSameOrAfter(referentTime.subtract(1, 'week'), 'day'))
+                  {
+                    this.setState(prevState => ({data: [...prevState.data, {date: date.format('MMM DD HH:mm:ss'), close: values[i]['4. close']}]}));
+                  }
+                  break;
+                case 'month':
+                  if(date.isSameOrAfter(referentTime.subtract(1, 'month'), 'day'))
+                  {
+                    this.setState(prevState => ({data: [...prevState.data, {date: date.format('MMM DD'), close: values[i]['4. close']}]}));
+                  }
+                  break;
+                case 'quarter':
+                  if(date.isSameOrAfter(referentTime.subtract(3, 'months'), 'day'))
+                  {
+                    this.setState(prevState => ({data: [...prevState.data, {date: date.format('MMM DD'), close: values[i]['4. close']}]}));
+                  }
+                  break;
+                case 'half-year':
+                  if(date.isSameOrAfter(referentTime.subtract(6, 'months'), 'week'))
+                  {
+                    this.setState(prevState => ({data: [...prevState.data, {date: date.format('MMM DD'), close: values[i]['4. close']}]}));
+                  }
+                  break;
+                case 'year':
+                  if(date.isSameOrAfter(referentTime.subtract(1, 'year'), 'week'))
+                  {
+                    this.setState(prevState => ({data: [...prevState.data, {date: date.format('MMM DD'), close: values[i]['4. close']}]}));
+                  }
+                  break;
+                default:
+                  this.setState(prevState => ({data: [...prevState.data, {date: date.format('MMM DD, YYYY'), close: values[i]['4. close']}]}));
               }
             }
           }
