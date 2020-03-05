@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Input, Button, Form, Spin, Row, Col, Empty, Radio } from 'antd';
+import { Input, Button, Form, Spin, Row, Col, Empty, Radio, Card } from 'antd';
 import { api } from './Api';
 import { LineChart, XAxis, YAxis, CartesianGrid, Line, Legend, ResponsiveContainer, Tooltip } from 'recharts';
 import moment from 'moment';
@@ -7,6 +7,25 @@ import './App.css';
 import 'antd/dist/antd.css';
 
 const apikey = 'GGQSQCREKP1PCWRF';
+
+const CustomTooltip = ({active, payload, label}) =>
+{
+  if (active) 
+  {
+    return (
+      <Card size='small'>
+        <p style={{color: 'red'}}>{label}</p>
+        <p>1. open: {payload[0]?.payload.prices['1. open']}</p>
+        <p>2. high: {payload[0]?.payload.prices['2. high']}</p>
+        <p>3. low: {payload[0]?.payload.prices['3. low']}</p>
+        <p style={{color: 'red'}}>4. close: {payload[0]?.payload.prices['4. close']}</p>
+        <p>5. volume: {payload[0]?.payload.prices['5. volume']}</p>
+      </Card>
+    );
+  }
+
+  return null;
+};
 
 class App extends Component
 {
@@ -49,41 +68,41 @@ class App extends Component
                 case 'intraday':
                   if(date.isSameOrAfter(referentTime, 'day'))
                   {
-                    this.setState(prevState => ({data: [...prevState.data, {date: date.format('HH:mm:ss'), close: values[i]['4. close']}]}));
+                    this.setState(prevState => ({data: [...prevState.data, {date: date.format('HH:mm:ss'), prices: values[i]}]}));
                   }
                   break;
                 case 'week':
                   if(date.isSameOrAfter(referentTime.subtract(1, 'week'), 'day'))
                   {
-                    this.setState(prevState => ({data: [...prevState.data, {date: date.format('MMM DD HH:mm:ss'), close: values[i]['4. close']}]}));
+                    this.setState(prevState => ({data: [...prevState.data, {date: date.format('MMM DD HH:mm:ss'), prices: values[i]}]}));
                   }
                   break;
                 case 'month':
                   if(date.isSameOrAfter(referentTime.subtract(1, 'month'), 'day'))
                   {
-                    this.setState(prevState => ({data: [...prevState.data, {date: date.format('MMM DD'), close: values[i]['4. close']}]}));
+                    this.setState(prevState => ({data: [...prevState.data, {date: date.format('MMM DD'), prices: values[i]}]}));
                   }
                   break;
                 case 'quarter':
                   if(date.isSameOrAfter(referentTime.subtract(3, 'months'), 'day'))
                   {
-                    this.setState(prevState => ({data: [...prevState.data, {date: date.format('MMM DD'), close: values[i]['4. close']}]}));
+                    this.setState(prevState => ({data: [...prevState.data, {date: date.format('MMM DD'), prices: values[i]}]}));
                   }
                   break;
                 case 'half-year':
                   if(date.isSameOrAfter(referentTime.subtract(6, 'months'), 'week'))
                   {
-                    this.setState(prevState => ({data: [...prevState.data, {date: date.format('MMM DD'), close: values[i]['4. close']}]}));
+                    this.setState(prevState => ({data: [...prevState.data, {date: date.format('MMM DD'), prices: values[i]}]}));
                   }
                   break;
                 case 'year':
                   if(date.isSameOrAfter(referentTime.subtract(1, 'year'), 'week'))
                   {
-                    this.setState(prevState => ({data: [...prevState.data, {date: date.format('MMM DD'), close: values[i]['4. close']}]}));
+                    this.setState(prevState => ({data: [...prevState.data, {date: date.format('MMM DD'), prices: values[i]}]}));
                   }
                   break;
                 default:
-                  this.setState(prevState => ({data: [...prevState.data, {date: date.format('MMM DD, YYYY'), close: values[i]['4. close']}]}));
+                  this.setState(prevState => ({data: [...prevState.data, {date: date.format('MMM DD, YYYY'), prices: values[i]}]}));
               }
             }
           }
@@ -176,8 +195,8 @@ class App extends Component
                 <YAxis interval='preserveEnd'/>
                 <CartesianGrid stroke='#eee' strokeDasharray='5 5'/>
                 <Legend verticalAlign='bottom'/>
-                <Line type='monotone' dataKey='close' stroke='red' name={this.state.symbol.toUpperCase()} dot={false}/>
-                <Tooltip/>
+                <Line type='monotone' dataKey='prices["4. close"]' stroke='red' name={this.state.symbol.toUpperCase()} dot={false}/>
+                <Tooltip content={<CustomTooltip />}/>
               </LineChart>
             </ResponsiveContainer>
           </div>

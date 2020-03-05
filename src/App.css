@@ -18,3 +18,8 @@
 {
   padding: 0 0 !important;
 }
+
+.ant-card
+{
+  border-radius: 10px !important;
+}
