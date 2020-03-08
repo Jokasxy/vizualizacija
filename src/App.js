@@ -8,25 +8,6 @@ import 'antd/dist/antd.css';
 
 const apikey = 'GGQSQCREKP1PCWRF';
 
-const CustomTooltip = ({active, payload, label}) =>
-{
-  if (active) 
-  {
-    return (
-      <Card size='small'>
-        <p style={{color: 'red'}}>{label}</p>
-        <p>1. open: {payload[0]?.payload.prices['1. open']}</p>
-        <p>2. high: {payload[0]?.payload.prices['2. high']}</p>
-        <p>3. low: {payload[0]?.payload.prices['3. low']}</p>
-        <p style={{color: 'red'}}>4. close: {payload[0]?.payload.prices['4. close']}</p>
-        <p>5. volume: {payload[0]?.payload.prices['5. volume']}</p>
-      </Card>
-    );
-  }
-
-  return null;
-};
-
 class App extends Component
 {
   constructor(props)
@@ -43,6 +24,39 @@ class App extends Component
     this.interval = localStorage.getItem('interval');
   }
 
+  /*componentDidMount()
+  {
+    api.get(`/query?function=SMA&symbol=AMD&interval=daily&time_period=200&series_type=close&apikey=${apikey}`)
+    .then(response =>
+    {
+      console.log(response.data);
+    });
+  }*/
+
+  PriceTooltip = ({active, payload, label}) =>
+  {
+    if (active) 
+    {
+      const percentage = ((payload[0]?.payload.prices['4. close'] / this.state.data[0].prices["4. close"] - 1) * 100).toFixed(2);
+      return (
+        <Card size='small'>
+          <p style={{color: percentage >= 0 ? 'green' : 'red', fontWeight: 'bold'}}>{label}: {percentage}%</p>
+          <p>1. open: {payload[0]?.payload.prices['1. open']}</p>
+          <p>2. high: {payload[0]?.payload.prices['2. high']}</p>
+          <p>3. low: {payload[0]?.payload.prices['3. low']}</p>
+          <p style={{color: percentage >= 0 ? 'green' : 'red', fontWeight: 'bold'}}>4. close: {payload[0]?.payload.prices['4. close']}</p>
+          <p>5. volume: {payload[0]?.payload.prices['5. volume']}</p>
+        </Card>
+      );
+    }
+    return null;
+  };
+
+  async fetchData(symbol, interval)
+  {
+    return api.get(`/query?function=${this.adjustInterval(interval)}&symbol=${symbol}&apikey=${apikey}`)
+  }
+
   handleSubmit = event =>
   {
     event.preventDefault();
@@ -51,7 +65,7 @@ class App extends Component
       if(!error)
       {
         this.setState({loading: true, data: [], symbol: formValues.symbol});
-        api.get(`/query?function=${this.adjustInterval(formValues.interval)}&symbol=${formValues.symbol}&apikey=${apikey}`)
+        this.fetchData(formValues.symbol, formValues.interval)
         .then(response =>
         {
           const data = Object.values(response.data)[1];
@@ -195,8 +209,27 @@ class App extends Component
                 <YAxis interval='preserveEnd'/>
                 <CartesianGrid stroke='#eee' strokeDasharray='5 5'/>
                 <Legend verticalAlign='bottom'/>
-                <Line type='monotone' dataKey='prices["4. close"]' stroke='red' name={this.state.symbol.toUpperCase()} dot={false}/>
-                <Tooltip content={<CustomTooltip />}/>
+                <Line type='monotone' dataKey='prices["4. close"]'
+                  stroke={(this.state.data[this.state.data.length - 1].prices["4. close"] / this.state.data[0].prices["4. close"]) >= 1 ? 'green' : 'red'}
+                  name={this.state.symbol.toUpperCase()} dot={false}/>
+                <Tooltip content={this.PriceTooltip}/>
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        }
+        {
+          this.state.data.length === 0 ? null :
+          <div style={{ width: '100%', height: '400px' }}>
+            <ResponsiveContainer>
+              <LineChart data={this.state.data}>
+                <XAxis dataKey='date'/>
+                <YAxis interval='preserveEnd'/>
+                <CartesianGrid stroke='#eee' strokeDasharray='5 5'/>
+                <Legend verticalAlign='bottom'/>
+                <Line type='monotone' dataKey={data => (data.prices["4. close"] / this.state.data[0].prices["4. close"] - 1) * 100}
+                  stroke={(this.state.data[this.state.data.length - 1].prices["4. close"] / this.state.data[0].prices["4. close"]) >= 1 ? 'green' : 'red'}
+                  name={this.state.symbol.toUpperCase()} dot={false}/>
+                <Tooltip content={this.PriceTooltip}/>
               </LineChart>
             </ResponsiveContainer>
           </div>
