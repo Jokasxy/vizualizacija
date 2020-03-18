@@ -33,7 +33,7 @@ class App extends Component
     });
   }*/
 
-  PriceTooltip = ({active, payload, label}) =>
+  priceTooltip = ({active, payload, label}) =>
   {
     if (active) 
     {
@@ -46,6 +46,30 @@ class App extends Component
           <p>3. low: {payload[0]?.payload.prices['3. low']}</p>
           <p style={{color: percentage >= 0 ? 'green' : 'red', fontWeight: 'bold'}}>4. close: {payload[0]?.payload.prices['4. close']}</p>
           <p>5. volume: {payload[0]?.payload.prices['5. volume']}</p>
+        </Card>
+      );
+    }
+    return null;
+  };
+
+  percentageTooltip = ({active, payload, label}) =>
+  {
+    if (active) 
+    {
+      const percentage = ((payload[0]?.payload.prices['4. close'] / this.state.data[0].prices["4. close"] - 1) * 100).toFixed(2);
+      const gspcPercantage = ((payload[0]?.payload.gspc['4. close'] / this.state.data[0].gspc["4. close"] - 1) * 100).toFixed(2);
+      const djiPercantage = ((payload[0]?.payload.dji['4. close'] / this.state.data[0].dji["4. close"] - 1) * 100).toFixed(2);
+      return (
+        <Card size='small'>
+          <p style={{color: (this.state.data[this.state.data.length - 1].prices["4. close"] / this.state.data[0].prices["4. close"]) >= 1 ? 'green' : 'red', fontWeight: 'bold'}}>
+            {this.state.symbol.toUpperCase()}<br/>{label}: {percentage}% {payload[0]?.payload.prices['4. close']}
+          </p>
+          <p style={{color: 'purple', fontWeight: 'bold'}}>
+            GSPC<br/>{label}: {gspcPercantage}% {payload[0]?.payload.gspc['4. close']}
+          </p>
+          <p style={{color: 'blue', fontWeight: 'bold'}}>
+            DJI<br/>{label}: {djiPercantage}% {payload[0]?.payload.dji['4. close']}
+          </p>
         </Card>
       );
     }
@@ -120,6 +144,39 @@ class App extends Component
               }
             }
           }
+        })
+        .then(() =>
+        {
+          this.fetchData('^gspc', formValues.interval)
+          .then(response =>
+          {
+            const data = Object.values(response.data)[1];
+            if(data)
+            {
+              const values = Object.values(data);
+              let gspc = this.state.data;
+              for(let i = this.state.data.length - 1; i >= 0; i--)
+              {
+                gspc[gspc.length - 1 - i] = Object.assign({gspc: values[i]}, gspc[gspc.length - 1 - i]);
+              }
+              this.setState({data: gspc});
+            }
+          })
+          this.fetchData('dji', formValues.interval)
+          .then(response =>
+          {
+            const data = Object.values(response.data)[1];
+            if(data)
+            {
+              const values = Object.values(data);
+              let dji = this.state.data;
+              for(let i = this.state.data.length - 1; i >= 0; i--)
+              {
+                dji[dji.length - 1 - i] = Object.assign({dji: values[i]}, dji[dji.length - 1 - i]);
+              }
+              this.setState({data: dji});
+            }
+          })
         })
         .finally(() =>
         {
@@ -202,9 +259,9 @@ class App extends Component
         </Form>
         {
           this.state.loading ? <Spin/> : this.state.data.length === 0 ? <Empty/> :
-          <div style={{ width: '100%', height: '400px' }}>
+          <div className='chart-container'>
             <ResponsiveContainer>
-              <LineChart data={this.state.data}>
+              <LineChart data={this.state.data} margin={{ top: 0, left: -20, right: 0, bottom: 0 }}>
                 <XAxis dataKey='date'/>
                 <YAxis interval='preserveEnd'/>
                 <CartesianGrid stroke='#eee' strokeDasharray='5 5'/>
@@ -212,16 +269,16 @@ class App extends Component
                 <Line type='monotone' dataKey='prices["4. close"]'
                   stroke={(this.state.data[this.state.data.length - 1].prices["4. close"] / this.state.data[0].prices["4. close"]) >= 1 ? 'green' : 'red'}
                   name={this.state.symbol.toUpperCase()} dot={false}/>
-                <Tooltip content={this.PriceTooltip}/>
+                <Tooltip content={this.priceTooltip}/>
               </LineChart>
             </ResponsiveContainer>
           </div>
         }
         {
-          this.state.data.length === 0 ? null :
-          <div style={{ width: '100%', height: '400px' }}>
+          this.state.data[this.state.data.length - 1]?.gspc && this.state.data[this.state.data.length - 1]?.dji &&
+          <div className='chart-container'>
             <ResponsiveContainer>
-              <LineChart data={this.state.data}>
+              <LineChart data={this.state.data} margin={{ top: 0, left: -20, right: 0, bottom: 0 }}>
                 <XAxis dataKey='date'/>
                 <YAxis interval='preserveEnd'/>
                 <CartesianGrid stroke='#eee' strokeDasharray='5 5'/>
@@ -229,7 +286,11 @@ class App extends Component
                 <Line type='monotone' dataKey={data => (data.prices["4. close"] / this.state.data[0].prices["4. close"] - 1) * 100}
                   stroke={(this.state.data[this.state.data.length - 1].prices["4. close"] / this.state.data[0].prices["4. close"]) >= 1 ? 'green' : 'red'}
                   name={this.state.symbol.toUpperCase()} dot={false}/>
-                <Tooltip content={this.PriceTooltip}/>
+                <Line type='monotone' dataKey={data => (data.gspc["4. close"] / this.state.data[0].gspc["4. close"] - 1) * 100}
+                  stroke='purple' name='GSPC' dot={false}/>
+                <Line type='monotone' dataKey={data => (data.dji["4. close"] / this.state.data[0].dji["4. close"] - 1) * 100}
+                  stroke='blue' name='DJI' dot={false}/>
+                <Tooltip content={this.percentageTooltip}/>
               </LineChart>
             </ResponsiveContainer>
           </div>
