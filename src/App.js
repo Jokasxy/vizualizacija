@@ -24,15 +24,6 @@ class App extends Component
     this.interval = localStorage.getItem('interval');
   }
 
-  /*componentDidMount()
-  {
-    api.get(`/query?function=SMA&symbol=AMD&interval=daily&time_period=200&series_type=close&apikey=${apikey}`)
-    .then(response =>
-    {
-      console.log(response.data);
-    });
-  }*/
-
   priceTooltip = ({active, payload, label}) =>
   {
     if (active) 
@@ -57,18 +48,18 @@ class App extends Component
     if (active) 
     {
       const percentage = ((payload[0]?.payload.prices['4. close'] / this.state.data[0].prices["4. close"] - 1) * 100).toFixed(2);
-      const gspcPercantage = ((payload[0]?.payload.gspc['4. close'] / this.state.data[0].gspc["4. close"] - 1) * 100).toFixed(2);
-      const djiPercantage = ((payload[0]?.payload.dji['4. close'] / this.state.data[0].dji["4. close"] - 1) * 100).toFixed(2);
+      const daxPercantage = ((payload[0]?.payload.dax['4. close'] / this.state.data[0].dax["4. close"] - 1) * 100).toFixed(2);
+      const spyPercantage = ((payload[0]?.payload.spy['4. close'] / this.state.data[0].spy["4. close"] - 1) * 100).toFixed(2);
       return (
         <Card size='small'>
           <p style={{color: (this.state.data[this.state.data.length - 1].prices["4. close"] / this.state.data[0].prices["4. close"]) >= 1 ? 'green' : 'red', fontWeight: 'bold'}}>
             {this.state.symbol.toUpperCase()}<br/>{label}: {percentage}% {payload[0]?.payload.prices['4. close']}
           </p>
           <p style={{color: 'purple', fontWeight: 'bold'}}>
-            GSPC<br/>{label}: {gspcPercantage}% {payload[0]?.payload.gspc['4. close']}
+            DAX<br/>{label}: {daxPercantage}% {payload[0]?.payload.dax['4. close']}
           </p>
           <p style={{color: 'blue', fontWeight: 'bold'}}>
-            DJI<br/>{label}: {djiPercantage}% {payload[0]?.payload.dji['4. close']}
+            SPY<br/>{label}: {spyPercantage}% {payload[0]?.payload.spy['4. close']}
           </p>
         </Card>
       );
@@ -147,34 +138,34 @@ class App extends Component
         })
         .then(() =>
         {
-          this.fetchData('^gspc', formValues.interval)
+          this.fetchData('dax', formValues.interval)
           .then(response =>
           {
             const data = Object.values(response.data)[1];
             if(data)
             {
               const values = Object.values(data);
-              let gspc = this.state.data;
+              let dax = this.state.data;
               for(let i = this.state.data.length - 1; i >= 0; i--)
               {
-                gspc[gspc.length - 1 - i] = Object.assign({gspc: values[i]}, gspc[gspc.length - 1 - i]);
+                dax[dax.length - 1 - i] = Object.assign({dax: values[i]}, dax[dax.length - 1 - i]);
               }
-              this.setState({data: gspc});
+              this.setState({data: dax});
             }
           })
-          this.fetchData('dji', formValues.interval)
+          this.fetchData('spy', formValues.interval)
           .then(response =>
           {
             const data = Object.values(response.data)[1];
             if(data)
             {
               const values = Object.values(data);
-              let dji = this.state.data;
+              let spy = this.state.data;
               for(let i = this.state.data.length - 1; i >= 0; i--)
               {
-                dji[dji.length - 1 - i] = Object.assign({dji: values[i]}, dji[dji.length - 1 - i]);
+                spy[spy.length - 1 - i] = Object.assign({spy: values[i]}, spy[spy.length - 1 - i]);
               }
-              this.setState({data: dji});
+              this.setState({data: spy});
             }
           })
         })
@@ -263,10 +254,10 @@ class App extends Component
             <ResponsiveContainer>
               <LineChart data={this.state.data} margin={{ top: 0, left: -20, right: 0, bottom: 0 }}>
                 <XAxis dataKey='date'/>
-                <YAxis interval='preserveEnd'/>
+                <YAxis interval='preserveEnd' domain={['auto', 'auto']} type="number"/>
                 <CartesianGrid stroke='#eee' strokeDasharray='5 5'/>
                 <Legend verticalAlign='bottom'/>
-                <Line type='monotone' dataKey='prices["4. close"]'
+                <Line /*type='monotone'*/ dataKey='prices["4. close"]'
                   stroke={(this.state.data[this.state.data.length - 1].prices["4. close"] / this.state.data[0].prices["4. close"]) >= 1 ? 'green' : 'red'}
                   name={this.state.symbol.toUpperCase()} dot={false}/>
                 <Tooltip content={this.priceTooltip}/>
@@ -275,7 +266,7 @@ class App extends Component
           </div>
         }
         {
-          this.state.data[this.state.data.length - 1]?.gspc && this.state.data[this.state.data.length - 1]?.dji &&
+          this.state.data[this.state.data.length - 1]?.dax && this.state.data[this.state.data.length - 1]?.spy &&
           <div className='chart-container'>
             <ResponsiveContainer>
               <LineChart data={this.state.data} margin={{ top: 0, left: -20, right: 0, bottom: 0 }}>
@@ -283,13 +274,13 @@ class App extends Component
                 <YAxis interval='preserveEnd'/>
                 <CartesianGrid stroke='#eee' strokeDasharray='5 5'/>
                 <Legend verticalAlign='bottom'/>
-                <Line type='monotone' dataKey={data => (data.prices["4. close"] / this.state.data[0].prices["4. close"] - 1) * 100}
+                <Line /*type='monotone'*/ dataKey={data => (data.prices["4. close"] / this.state.data[0].prices["4. close"] - 1) * 100}
                   stroke={(this.state.data[this.state.data.length - 1].prices["4. close"] / this.state.data[0].prices["4. close"]) >= 1 ? 'green' : 'red'}
                   name={this.state.symbol.toUpperCase()} dot={false}/>
-                <Line type='monotone' dataKey={data => (data.gspc["4. close"] / this.state.data[0].gspc["4. close"] - 1) * 100}
-                  stroke='purple' name='GSPC' dot={false}/>
-                <Line type='monotone' dataKey={data => (data.dji["4. close"] / this.state.data[0].dji["4. close"] - 1) * 100}
-                  stroke='blue' name='DJI' dot={false}/>
+                <Line /*type='monotone'*/ dataKey={data => (data.dax["4. close"] / this.state.data[0].dax["4. close"] - 1) * 100}
+                  stroke='purple' name='DAX' dot={false}/>
+                <Line /*type='monotone'*/ dataKey={data => (data.spy["4. close"] / this.state.data[0].spy["4. close"] - 1) * 100}
+                  stroke='blue' name='SPY' dot={false}/>
                 <Tooltip content={this.percentageTooltip}/>
               </LineChart>
             </ResponsiveContainer>
