@@ -21,9 +21,11 @@ class App extends Component
       symbol: undefined
     }
 
+    //Prefered interval
     this.interval = localStorage.getItem('interval');
   }
 
+  //First graph tooltip
   priceTooltip = ({active, payload, label}) =>
   {
     if (active) 
@@ -43,6 +45,7 @@ class App extends Component
     return null;
   };
 
+  //Second graph tooltip
   percentageTooltip = ({active, payload, label}) =>
   {
     if (active) 
@@ -67,11 +70,13 @@ class App extends Component
     return null;
   };
 
+  //Api call template
   async fetchData(symbol, interval)
   {
     return api.get(`/query?function=${this.adjustInterval(interval)}&symbol=${symbol}&apikey=${apikey}`)
   }
 
+  //Handle submit on symbol input
   handleSubmit = event =>
   {
     event.preventDefault();
@@ -79,19 +84,32 @@ class App extends Component
     {
       if(!error)
       {
+        //Add spinner, clear data, save symbol
         this.setState({loading: true, data: [], symbol: formValues.symbol});
+
+        //Fetch symbol
         this.fetchData(formValues.symbol, formValues.interval)
         .then(response =>
         {
+          //Data array
           const data = Object.values(response.data)[1];
           if(data)
           {
+            //Date array
             const keys = Object.keys(data);
+
+            //Values array
             const values = Object.values(data);
+
+            //From oldest to newest
             for(let i = values.length - 1; i >= 0; i--)
             {
+              //Newest time object
               const referentTime = moment(keys[0]);
+              
               const date = moment(keys[i]);
+
+              //Check radio group checked button
               switch(formValues.interval)
               {
                 case 'intraday':
@@ -148,6 +166,7 @@ class App extends Component
               let dax = this.state.data;
               for(let i = this.state.data.length - 1; i >= 0; i--)
               {
+                //Assign dax values to data state object
                 dax[dax.length - 1 - i] = Object.assign({dax: values[i]}, dax[dax.length - 1 - i]);
               }
               this.setState({data: dax});
@@ -163,6 +182,7 @@ class App extends Component
               let spy = this.state.data;
               for(let i = this.state.data.length - 1; i >= 0; i--)
               {
+                //Assign spy values to data state object
                 spy[spy.length - 1 - i] = Object.assign({spy: values[i]}, spy[spy.length - 1 - i]);
               }
               this.setState({data: spy});
@@ -178,6 +198,7 @@ class App extends Component
     })
   }
 
+  //Returns String required in api call
   adjustInterval(interval)
   {
     switch(interval)
@@ -249,15 +270,19 @@ class App extends Component
           </Row>
         </Form>
         {
+          /*Return spinner if loading, data if data is loaded, empty image if no data*/
           this.state.loading ? <Spin/> : this.state.data.length === 0 ? <Empty/> :
           <div className='chart-container'>
             <ResponsiveContainer>
-              <LineChart data={this.state.data} margin={{ top: 0, left: -20, right: 0, bottom: 0 }}>
+
+              {/*Assign data state object to chart*/}
+              <LineChart data={this.state.data}>
                 <XAxis dataKey='date'/>
-                <YAxis interval='preserveEnd' domain={['auto', 'auto']} type="number"/>
+                <YAxis interval='preserveStartEnd' tickCount={6} dataKey={data => Number.parseInt(data.prices["4. close"])} domain={[min => Math.floor(min), max => Math.ceil(max) + 1]} type="number"/>
                 <CartesianGrid stroke='#eee' strokeDasharray='5 5'/>
                 <Legend verticalAlign='bottom'/>
-                <Line /*type='monotone'*/ dataKey='prices["4. close"]'
+                {/*Stroke - choosing color based on positive or negative price movement*/}
+                <Line dataKey='prices["4. close"]'
                   stroke={(this.state.data[this.state.data.length - 1].prices["4. close"] / this.state.data[0].prices["4. close"]) >= 1 ? 'green' : 'red'}
                   name={this.state.symbol.toUpperCase()} dot={false}/>
                 <Tooltip content={this.priceTooltip}/>
@@ -266,20 +291,24 @@ class App extends Component
           </div>
         }
         {
+          /*Draw chart on dax and spy data response*/
           this.state.data[this.state.data.length - 1]?.dax && this.state.data[this.state.data.length - 1]?.spy &&
           <div className='chart-container'>
             <ResponsiveContainer>
-              <LineChart data={this.state.data} margin={{ top: 0, left: -20, right: 0, bottom: 0 }}>
+
+              {/*Assign data state object to chart*/}
+              <LineChart data={this.state.data}>
                 <XAxis dataKey='date'/>
                 <YAxis interval='preserveEnd'/>
                 <CartesianGrid stroke='#eee' strokeDasharray='5 5'/>
                 <Legend verticalAlign='bottom'/>
-                <Line /*type='monotone'*/ dataKey={data => (data.prices["4. close"] / this.state.data[0].prices["4. close"] - 1) * 100}
+                {/*Stroke - choosing color based on positive or negative price movement*/}
+                <Line dataKey={data => (data.prices["4. close"] / this.state.data[0].prices["4. close"] - 1) * 100}
                   stroke={(this.state.data[this.state.data.length - 1].prices["4. close"] / this.state.data[0].prices["4. close"]) >= 1 ? 'green' : 'red'}
                   name={this.state.symbol.toUpperCase()} dot={false}/>
-                <Line /*type='monotone'*/ dataKey={data => (data.dax["4. close"] / this.state.data[0].dax["4. close"] - 1) * 100}
+                <Line dataKey={data => (data.dax["4. close"] / this.state.data[0].dax["4. close"] - 1) * 100}
                   stroke='purple' name='DAX' dot={false}/>
-                <Line /*type='monotone'*/ dataKey={data => (data.spy["4. close"] / this.state.data[0].spy["4. close"] - 1) * 100}
+                <Line dataKey={data => (data.spy["4. close"] / this.state.data[0].spy["4. close"] - 1) * 100}
                   stroke='blue' name='SPY' dot={false}/>
                 <Tooltip content={this.percentageTooltip}/>
               </LineChart>

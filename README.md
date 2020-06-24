@@ -1,3 +1,19 @@
+# Important
+## Limitations
+
+Maximum number of API calls is 5 calls per minute and 500 calls per day. System uses 3 API calls with every submit since Alpha Vantage API
+does not provide bulk calls.
+
+## Starting the app
+
+Download Node Package Manager ([NPM](https://www.npmjs.com/get-npm)) as part of [NodeJS](https://nodejs.org/en/download/).<br />
+Download the source code using Git clone command.<br />
+Open cloned folder in command line.<br />
+Write npm install in command line to get install all of the dependencies.<br />
+Write npm start in command line to start local server.
+
+# Stock market analysis
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
