@@ -1,3 +1,5 @@
+This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+
 # Important
 ## Limitations
 
@@ -12,9 +14,6 @@ Open cloned folder in command line.<br />
 Write npm install in command line to get install all of the dependencies.<br />
 Write npm start in command line to start local server.
 
-# Stock market analysis
-
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
 
