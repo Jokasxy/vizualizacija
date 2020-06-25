@@ -299,7 +299,7 @@ class App extends Component
               {/*Assign data state object to chart*/}
               <LineChart data={this.state.data}>
                 <XAxis dataKey='date'/>
-                <YAxis interval='preserveEnd'/>
+                <YAxis interval='preserveEnd' unit='%'/>
                 <CartesianGrid stroke='#eee' strokeDasharray='5 5'/>
                 <Legend verticalAlign='bottom'/>
                 {/*Stroke - choosing color based on positive or negative price movement*/}
