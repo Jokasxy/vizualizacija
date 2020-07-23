@@ -1,8 +1,9 @@
 import React, { Component } from 'react';
-import { Input, Button, Form, Spin, Row, Col, Empty, Radio, Card } from 'antd';
+import { AutoComplete, Button, Form, Spin, Row, Col, Empty, Radio, Card } from 'antd';
 import { api } from './Api';
 import { LineChart, XAxis, YAxis, CartesianGrid, Line, Legend, ResponsiveContainer, Tooltip } from 'recharts';
 import moment from 'moment';
+import symbols from './symbols.json'
 import './App.css';
 import 'antd/dist/antd.css';
 
@@ -226,7 +227,18 @@ class App extends Component
           <Row gutter={[20, 20]}>
             <Col xs={16} sm={18} lg={20} xxl={21}>
               <Form.Item label='Input stock symbol'>
-              {getFieldDecorator('symbol')(<Input size='large' placeholder='Stock symbol'/>)}
+              {getFieldDecorator('symbol')(
+                <AutoComplete size='large' placeholder='Stock symbol' filterOption={(inputValue, option) =>
+                option.props.value.includes(inputValue.toUpperCase())}
+                >
+                  {
+                    symbols.map((item, key) =>
+                    (
+                      <AutoComplete.Option key={key} value={item['Symbol']}>{`${item['Symbol']} - ${item['Company Name']}`}</AutoComplete.Option>
+                    ))
+                  }
+                </AutoComplete>
+              )}
               </Form.Item>
             </Col>
             <Col xs={8} sm={6} lg={4} xxl={3}>
